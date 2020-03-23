@@ -1,8 +1,9 @@
 import torch
-import torch.nn as nn
+import torch.nn    as nn
+import torch.optim as optim
 import torchvision
-import squib
 
+from updaters.supervised import ClassificationUpdater
 
 def MLP():
     class Flatten(nn.Module):
@@ -25,8 +26,6 @@ def MLP():
     return mlp
 
 
-def updater(model, dataloader):
-
 
 def main():
     trainset = torchvision.datasets.MNIST(root='./mnist', train=True,  download=True)
@@ -36,3 +35,5 @@ def main():
     test_loader  = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=False, num_workers=2)
 
     model = MLP()
+    opt   = optim.Adam(model.parameters())
+    

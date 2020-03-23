@@ -18,5 +18,5 @@ def accuracy(y:torch.Tensor, t:torch.Tensor):
 
     i = np.argmax(y, axis=1)
     c = i == t
-    a = int(np.sum(c)) / t.shape[0]
+    a = float(np.sum(c)) / t.shape[0]
     return a
