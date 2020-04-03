@@ -59,10 +59,10 @@ class SupervisedUpdater():
 
 def ClassificationUpdater(model, optimizer=None, tag=None) -> SupervisedUpdater:
     loss_funcs = {
-        'loss':lambda x: nn.CrossEntropyLoss()
+        'loss':nn.CrossEntropyLoss()
     }
     metrix_funcs = {
-        'accuracy':lambda x: accuracy
+        'accuracy':accuracy
     }
     upd = SupervisedUpdater(model       =model,
                             optimizer   =optimizer,
