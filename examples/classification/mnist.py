@@ -3,8 +3,8 @@ import torch.nn    as nn
 import torch.optim as optim
 import torchvision
 
-from updaters.supervised import ClassificationUpdater
-from trainer.trainer     import Trainer
+from squib.updaters.updater import ClassificationUpdater
+from squib.trainer.trainer  import Trainer
 
 
 def MLP():

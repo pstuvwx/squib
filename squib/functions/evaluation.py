@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-def as_numpy(x:torch.Tensor):
+def as_numpy(x:torch.Tensor) -> np.ndarray:
     if isinstance(x, np.ndarray):
         return x
     x = x.detach()
@@ -10,7 +10,7 @@ def as_numpy(x:torch.Tensor):
     x = x.numpy()
     return x
 
-def accuracy(y:torch.Tensor, t:torch.Tensor):
+def accuracy(y:torch.Tensor, t:torch.Tensor) -> float:
     y = as_numpy(y)
     t = as_numpy(t)
 

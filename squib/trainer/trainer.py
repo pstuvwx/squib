@@ -190,7 +190,8 @@ class Trainer():
     def save_trainer(self, path   :str,
                            models :Dict[str, torch.nn.Module],
                            trigger:Tuple[int, str]=(1, 'epoch')):
-        assert trigger[1] == 'epoch'
+        if trigger[1] != 'epoch':
+            raise RuntimeError("trigger of save_trainer have to 'epoch'")
 
         path     = os.path.join(self.save_to, path)
         dirctory = os.path.dirname(path)
