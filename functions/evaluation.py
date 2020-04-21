@@ -5,7 +5,7 @@ def as_numpy(x:torch.Tensor):
     if isinstance(x, np.ndarray):
         return x
     x = x.detach()
-    if x.device.index:
+    if x.device.type >= 'cuda':
         x = x.cpu()
     x = x.numpy()
     return x

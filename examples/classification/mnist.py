@@ -45,6 +45,7 @@ def main():
     model  = MLP()
     opt    = optim.Adam(model.parameters(), lr=1e-3)
     device = torch.device('cpu')
+    model.to(device)
 
     train_updater      = ClassificationUpdater(model, tag='tr', optimizer=opt)
     validation_updater = ClassificationUpdater(model, tag='vl')

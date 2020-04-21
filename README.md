@@ -1,2 +1,2 @@
-# squib
- PyTorch training tool
+# Squib
+A library for blowing up your PyTorch project.
