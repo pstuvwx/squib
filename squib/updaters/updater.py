@@ -1,10 +1,7 @@
 from typing import Dict, Tuple
 
-import torch.nn as nn
 from torch       import Tensor
 from torch.optim import Optimizer
-
-from squib.functions.evaluation import accuracy
 
 
 
@@ -33,49 +30,3 @@ class StanderdUpdater():
             self.optimizer.step()
 
         return dst
-
-
-
-def ClassificationUpdater(model, optimizer=None, tag=None) -> StanderdUpdater:
-    cel = nn.CrossEntropyLoss()
-
-    def _loss_func(x, t):
-        y = model(x)
-        loss = cel(y, t)
-        accu = accuracy(y, t)
-        result = {
-            'loss':loss.item(),
-            'accuracy':accu
-        }
-        return loss, result
-
-    upd = StanderdUpdater(loss_func=_loss_func,
-                          optimizer=optimizer,
-                          tag      =tag)
-    
-    return upd
-
-
-
-def AutoencodeUpdater(encoder,
-                      decoder,
-                      optimizer=None,
-                      tag=None) -> StanderdUpdater:
-    mse = nn.MSELoss()
-
-    def _loss_func(x):
-        z = encoder(x)
-        y = decoder(z)
-
-        loss = mse(x, y)
-
-        result = {
-            'loss':loss.item(),
-        }
-        return loss, result
-
-    upd = StanderdUpdater(loss_func=_loss_func,
-                          optimizer=optimizer,
-                          tag      =tag)
-    
-    return upd

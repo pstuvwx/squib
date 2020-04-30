@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
@@ -131,9 +131,22 @@ class Trainer():
             self.run_epoch()
 
 
-    def log_report(self, keys:str, trigger:Tuple[int, str]=(1, 'epoch')):
-        self.writer      = ConsoleWriter(keys, self.save_to)
+    def log_report(self,
+                   keys   :str,
+                   trigger:Tuple[int, str]     =(1, 'epoch'),
+                   plots  :Dict[str, List[str]]=None,
+                   xkey   :str='epoch'):
+        self.writer      = ConsoleWriter(keys, self.save_to, plots, xkey)
         self.log_trigger = trigger
+
+
+
+    def add_event(self, func, trigger:Tuple[int, str]=(1, 'epoch')):
+        trigger_time, trigger_type = trigger
+        {
+            'epoch'    :self.epoch_events,
+            'iteration':self.iteration_events
+        }[trigger_type].append((trigger_time, func))
 
 
     def add_evaluation(self,
@@ -154,11 +167,7 @@ class Trainer():
                     results['progress']  = (i+1) / length
                     self.writer(results)
 
-        trigger_time, trigger_type = trigger
-        {
-            'epoch'    :self.epoch_events,
-            'iteration':self.iteration_events
-        }[trigger_type].append((trigger_time, _func))
+        self.add_event(_func, trigger)
 
 
     def save_model(self, path:str, model:torch.nn.Module, trigger=(1, 'epoch')):
@@ -176,11 +185,7 @@ class Trainer():
             p = path.format(iteration=self.iteration, epoch=self.epoch)
             torch.save(model.state_dict(), p)
         
-        trigger_time, trigger_type = trigger
-        {
-            'epoch'    :self.epoch_events,
-            'iteration':self.iteration_events
-        }[trigger_type].append((trigger_time, _func))
+        self.add_event(_func, trigger)
     
 
     def save_optimizer(self, *arg, **karg):

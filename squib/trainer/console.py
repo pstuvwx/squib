@@ -2,6 +2,10 @@ import csv
 import os
 from typing import Dict, List, Union
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 def load_csv(path, encoding='utf_8_sig'):
     with open(path, 'r', newline='', encoding=encoding) as f:
@@ -18,10 +22,29 @@ def save_csv(path, obj, encoding='utf_8_sig'):
 
 
 
+def save_plot(path, keys, log, xkey):
+    tags  = log[0]
+    log   = log[1:]
+    xi    = tags.index(xkey)
+    xtick = [l[xi] for l in log]
+    for k in keys:
+        yi   = tags.index(k)
+        yval = [l[yi] for l in log]
+        plt.plot(xtick, yval, label=k)
+    plt.legend()
+    plt.grid()
+
+    plt.savefig(path)
+    plt.close()
+
+
+
 class ConsoleWriter():
     def __init__(self,
-                 keys:List[str],
-                 save_to:str=None):
+                 keys   :List[str],
+                 save_to:str=None,
+                 plots  :Dict[str, List[str]]=None,
+                 xkey   :str='epoch'):
         self.keys = ['epoch', 'iteration', 'time'] + keys + ['progress']
         self.fmts = ['{:^10d}', '{:^10d}', '{:^10d}'] + \
                     ['{: ^ '+str(max(len(k), 10))+'.3e}' for k in keys] + \
@@ -29,7 +52,12 @@ class ConsoleWriter():
         self.vals = {k:0 for k in self.keys}
 
         self.hist = [['epoch', 'iteration', 'time'] + keys]
-        self.save = os.path.join(save_to, 'log.csv')
+        self.save = os.path.join(save_to, 'log.csv') \
+                    if save_to is not None else None
+
+        self.plot = [(os.path.join(save_to, k), plots[k]) for k in plots] \
+                    if plots is not None else []
+        self.xkey = xkey
 
 
     def init(self):
@@ -63,3 +91,5 @@ class ConsoleWriter():
         print()
         if self.save:
             save_csv(self.save, self.hist)
+            for path, keys in self.plot:
+                save_plot(path, keys, self.hist, self.xkey)

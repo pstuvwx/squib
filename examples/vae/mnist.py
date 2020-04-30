@@ -1,12 +1,19 @@
+import os
+
+import numpy       as np
 import torch
 import torch.nn    as nn
 import torch.optim as optim
-import torchvision
+from PIL                    import Image
+from torch.utils.data       import DataLoader, Dataset
+from torchvision.datasets   import MNIST
+from torchvision.transforms import ToTensor
 
 from squib.updaters.updater import StanderdUpdater
 from squib.trainer.trainer  import Trainer
 
 
+latent_dim = 20
 
 class Encoder(nn.Module):
     def __init__(self):
@@ -15,7 +22,7 @@ class Encoder(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(784, 400),
             nn.ReLU(inplace=True),
-            nn.Linear(400, 40),
+            nn.Linear(400, latent_dim*2),
         )
     
 
@@ -34,7 +41,7 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
 
         self.mlp = nn.Sequential(
-            nn.Linear(20, 400),
+            nn.Linear(latent_dim, 400),
             nn.ReLU(inplace=True),
             nn.Linear(400, 784),
             nn.Sigmoid(),
@@ -44,7 +51,7 @@ class Decoder(nn.Module):
     def forward(self, mean, log_std):
         std = torch.exp(log_std)
         eps = torch.randn_like(std)
-        x = mean + std*eps
+        x   = mean + std*eps
 
         x = self.mlp(x)
         x = x.reshape(-1, 1, 28, 28)
@@ -79,26 +86,65 @@ def VAEUpdater(encoder, decoder, optimizer=None, tag=None) -> StanderdUpdater:
 
 
 
-def main():
-    trainset = torchvision.datasets.MNIST(root='./mnist', train=True,  download=True,
-                                          transform=torchvision.transforms.ToTensor())
-    testset  = torchvision.datasets.MNIST(root='./mnist', train=False, download=True,
-                                          transform=torchvision.transforms.ToTensor())
+def example(encoder       :Encoder,
+            decoder       :Decoder,
+            validation_set:Dataset,
+            save_to       :str,
+            device        :torch.device):
+    n_img           = 8
+    validation_imgs = torch.stack([validation_set[i][0] for i in range(n_img)])
 
-    train_loader      = torch.utils.data.DataLoader(trainset,
-                                                    batch_size=128,
-                                                    shuffle=True,
-                                                    num_workers=2)
-    validation_loader = torch.utils.data.DataLoader(testset,
-                                                    batch_size=128,
-                                                    shuffle=False,
-                                                    num_workers=2)
+    if not os.path.exists(save_to):
+        os.mkdir(save_to)
+
+    def _func():
+        with torch.no_grad():
+            input_img = validation_imgs.to(device)
+            mean      = torch.zeros((8, latent_dim), dtype=torch.float32, device=device)
+            std       = torch.ones ((8, latent_dim), dtype=torch.float32, device=device)
+
+            reconstructed = decoder(*encoder(input_img))*255
+            generated     = decoder(mean, std)*255
+
+            reconstructed = reconstructed.detach().cpu().numpy()
+            generated     = generated    .detach().cpu().numpy()
+        
+        name = ['_reconstructed.png', '_generated.png']
+        for j, rg in enumerate(zip(reconstructed, generated)):
+            for n, i in zip(name, rg):
+                path = os.path.join(save_to, str(j)+n)
+                img  = i.reshape(28, 28).astype(np.uint8)
+                img  = Image.fromarray(img)
+                img.save(path)
+
+    return _func
+
+
+
+def main():
+    trainset      = MNIST(root     ='./mnist',
+                          train    =True,
+                          download =True,
+                          transform=ToTensor())
+    validationset = MNIST(root     ='./mnist',
+                          train    =False,
+                          download =True,
+                          transform=ToTensor())
+
+    train_loader      = DataLoader(trainset,
+                                   batch_size =128,
+                                   shuffle    =True,
+                                   num_workers=2)
+    validation_loader = DataLoader(validationset,
+                                   batch_size =128,
+                                   shuffle    =False,
+                                   num_workers=2)
 
     device = torch.device('cuda:0')
 
     enc = Encoder()
     dec = Decoder()
-    opt = optim.Adam(list(enc.parameters())+list(dec.parameters()), lr=1e-3)
+    opt = optim.Adam(list(enc.parameters())+list(dec.parameters()), lr=1e-4)
     enc.to(device)
     dec.to(device)
 
@@ -127,6 +173,9 @@ def main():
     trainer.save_trainer(path   ='trainer.pth',
                          models ={'encoder':enc, 'decoder':dec, 'opt':opt},
                          trigger=(1, 'epoch'))
+
+    trainer.add_event(example(enc, dec, validationset, './example', device),
+                      trigger=(1, 'epoch'))
     
     trainer.run()
 

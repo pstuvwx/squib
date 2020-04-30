@@ -1,3 +1,7 @@
 
 .gitattributes
 *.pyc
+squib.egg-info/dependency_links.txt
+squib.egg-info/PKG-INFO
+squib.egg-info/SOURCES.txt
+squib.egg-info/top_level.txt
