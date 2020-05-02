@@ -1,32 +1,65 @@
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
-from torch       import Tensor
+from torch       import nn, Tensor
 from torch.optim import Optimizer
 
 
 
-class StanderdUpdater():
-    def __init__(self,
-                 loss_func:Tuple[Tensor, Dict[str, float]],
-                 optimizer:Optimizer=None,
-                 tag      :str=None):
-        self.loss_func = loss_func
-        self.optimizer = optimizer
-        self.tag       = tag + '/' if tag else ''
+def StanderdUpdater(loss_func:Tuple[Tensor, Dict[str, float]],
+                    optimizer:Optimizer=None,
+                    tag      :str=None,
+                    clip_grad:Tuple[nn.Module, float]=None):
+    tag = tag + '/' if tag else ''
 
-    def __call__(self, *arg, **karg) -> Dict[str, float]:
-        loss, result = self.loss_func(*arg, **karg)
+    def _func(*arg, **karg) -> Dict[str, float]:
+        loss, result = loss_func(*arg, **karg)
 
         dst = {}
         for k, v in result.items():
-            k = self.tag + k
+            k = tag + k
             if isinstance(v, Tensor):
                 v = v.item()
             dst[k] = v
         
-        if self.optimizer:
-            self.optimizer.zero_grad()
+        if optimizer:
+            optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
+            if clip_grad:
+                nn.utils.clip_grad_norm_(*clip_grad)
+            optimizer.step()
 
         return dst
+
+    return _func
+
+
+
+def MultilossUpdater(loss_func :Tuple[Tensor, Dict[str, float]],
+                     optimizers:List[Optimizer]=None,
+                     tag       :str=None,
+                     clip_grad :List[Tuple[nn.Module, float]]=None):
+    tag = tag + '/' if tag else ''
+    if optimizers and clip_grad is None:
+        clip_grad = [None] * len(optimizers)
+
+    def _func(*arg, **karg) -> Dict[str, float]:
+        losses, result = loss_func(*arg, **karg)
+
+        dst = {}
+        for k, v in result.items():
+            k = tag + k
+            if isinstance(v, Tensor):
+                v = v.item()
+            dst[k] = v
+        
+        if optimizers:
+            for l, o, c in zip(losses, optimizers, clip_grad):
+                o.zero_grad()
+                l.backward()
+                if c:
+                    nn.utils.clip_grad_norm_(*c)
+                o.step()
+
+        return dst
+    
+    return _func

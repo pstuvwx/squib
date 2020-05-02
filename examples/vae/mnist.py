@@ -157,6 +157,10 @@ def main():
                       save_to='./result')
 
     trainer.log_report(keys   =['tr/bce', 'vl/bce', 'tr/kld', 'vl/kld'],
+                       plots  ={
+                           'bce.png':['tr/bce', 'vl/bce'],
+                           'kld.png':['tr/kld', 'vl/kld']
+                           },
                        trigger=(1, 'epoch'))
     
     trainer.add_evaluation(loader =validation_loader,
