@@ -72,6 +72,11 @@ def Discriminater():
 
 def GANUpdater(gene, disc, optimizers=None, tag=None, *arg, **karg) -> MultilossUpdater:
     def _loss_func(x, _):
+        if optimizer is None:
+            model.eval()
+        else:
+            model.train()
+            
         b = int(x.shape[0])
         z = torch.randn((b, 128), dtype=torch.float32, device=x.device)
         y = gene(z)

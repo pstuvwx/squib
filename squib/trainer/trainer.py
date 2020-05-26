@@ -51,7 +51,9 @@ class Trainer():
         self.epoch_events     = []
         self.iteration_events = []
 
-        self._sv_tr =None
+        self._sv_tr = None
+
+        self._run_flug = True
 
 
     def end_iteration(self):
@@ -77,7 +79,7 @@ class Trainer():
                 p = 1
             return p
         def calc_epoch():
-            p = (length * (self.epoch % trigger_time) + i) / \
+            p = (length * ((self.epoch-1) % trigger_time) + i) / \
                 (length * trigger_time)
             return p
 
@@ -110,24 +112,28 @@ class Trainer():
 
             self.end_iteration()
 
+            if not self._run_flug:
+                return
+
         self.end_epoch()
 
     
-    def run(self):
-        trigger_time, trigger_type = self.log_trigger
-        {
-            'epoch'    :self.epoch_events,
-            'iteration':self.iteration_events
-        }[trigger_type].append((trigger_time, self.writer.flush))
+    def run(self, end_trigger=None):
+        self.start_time = time.time() - \
+                          (self.writer.vals['time'] if self.writer else 0)
+        if self.writer:
+            self.add_event(self.writer.flush, self.log_trigger)
+            self.writer.init()
 
         if self._sv_tr:
             self.epoch_events.append(self._sv_tr)
+        
+        if end_trigger:
+            def _stop():
+                self._run_flug = False
+            self.add_event(_stop, end_trigger)
 
-        self.start_time = time.time() - \
-                          (self.writer.vals['time'] if self.writer else 0)
-        self.writer.init()
-
-        while True:
+        while self._run_flug:
             self.run_epoch()
 
 
@@ -155,6 +161,7 @@ class Trainer():
                        trigger:Tuple[int, str]=(1, 'epoch')):
         def _func():
             length = len(loader)
+
             for i, vs in enumerate(loader):
                 vs      = send_device(vs, self.device)
                 results = updater(*vs)
@@ -194,6 +201,7 @@ class Trainer():
 
     def save_trainer(self, path   :str,
                            models :Dict[str, torch.nn.Module],
+                           other  :Dict[str, object],
                            trigger:Tuple[int, str]=(1, 'epoch')):
         if trigger[1] != 'epoch':
             raise RuntimeError("trigger of save_trainer have to 'epoch'")
@@ -211,6 +219,7 @@ class Trainer():
                 'vl_collecter':self.vl_collecter,
                 'writer'      :self.writer if self.writer else 0
             }
+            items.update(**other)
             for k, m in models.items():
                 items[k] = m.state_dict()
             torch.save(items, path)

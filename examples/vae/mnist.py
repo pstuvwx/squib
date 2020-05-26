@@ -65,6 +65,13 @@ def VAEUpdater(encoder, decoder, optimizer=None, tag=None) -> StanderdUpdater:
     kld = lambda m, l: 0.5 * torch.mean(1 + 0.5*l - m.pow(2) - l.exp().pow(2))
 
     def _loss_func(x, _):
+        if optimizer is None:
+            encoder.eval()
+            decoder.eval()
+        else:
+            encoder.train()
+            decoder.train()
+            
         mean, log_std = encoder(x)
         y = decoder(mean, log_std)
 

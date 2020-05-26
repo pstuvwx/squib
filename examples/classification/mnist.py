@@ -35,6 +35,11 @@ def ClassificationUpdater(model, optimizer=None, tag=None) -> StanderdUpdater:
     cel = nn.CrossEntropyLoss()
 
     def _loss_func(x, t):
+        if optimizer is None:
+            model.eval()
+        else:
+            model.train()
+            
         y = model(x)
         loss = cel(y, t)
         accu = accuracy(y, t)
