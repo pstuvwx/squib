@@ -14,9 +14,7 @@ def accuracy(y:torch.Tensor, t:torch.Tensor) -> float:
     y = as_numpy(y)
     t = as_numpy(t)
 
-    assert len(y.shape) == 2 and len(t.shape) == 1
-
     i = np.argmax(y, axis=1)
     c = i == t
-    a = float(np.sum(c)) / t.shape[0]
+    a = float(np.sum(c)) / np.prod(t.shape)
     return a
